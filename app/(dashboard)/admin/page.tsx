@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/card";
 import { deletePoll } from "@/app/lib/actions/poll-actions";
 import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/app/lib/context/auth-context";
+import { useRouter } from "next/navigation";
 
 interface Poll {
   id: string;
@@ -24,10 +26,19 @@ export default function AdminPage() {
   const [polls, setPolls] = useState<Poll[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
-    fetchAllPolls();
-  }, []);
+    // Check if user is admin (you can implement your own admin logic)
+    if (user && user.email === "admin@alxpolly.com") {
+      fetchAllPolls();
+    } else {
+      setError("Access denied. Admin privileges required.");
+      setLoading(false);
+    }
+  }, [user]);
 
   const fetchAllPolls = async () => {
     const supabase = createClient();
@@ -39,6 +50,8 @@ export default function AdminPage() {
 
     if (!error && data) {
       setPolls(data);
+    } else {
+      setError("Failed to fetch polls");
     }
     setLoading(false);
   };
@@ -56,6 +69,20 @@ export default function AdminPage() {
 
   if (loading) {
     return <div className="p-6">Loading all polls...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Access Denied</h1>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <Button onClick={() => router.push("/polls")}>
+            Return to Polls
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (
